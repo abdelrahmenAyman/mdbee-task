@@ -1,0 +1,99 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket File Upload</title>
+</head>
+
+<body>
+    <input type="file" id="fileInput">
+    <button id="uploadButton">Upload File</button>
+    <div id="status"></div>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:8000/ws/file-transfer/');
+        const fileInput = document.getElementById('fileInput');
+        const uploadButton = document.getElementById('uploadButton');
+        const statusDiv = document.getElementById('status');
+
+        let file;
+        let chunkSize = 64 * 1024; // 64KB chunks
+        let offset = 0;
+
+        socket.onopen = function (e) {
+            console.log('WebSocket connection established');
+            statusDiv.textContent = 'Connected to server';
+        };
+
+        socket.onmessage = function (e) {
+            console.log('Message received from server:', e.data);
+            const data = JSON.parse(e.data);
+            if (data.type === 'meta_received' || data.type === 'chunk_received') {
+                console.log('Sending next chunk');
+                sendNextChunk();
+            }
+            else {
+                statusDiv.textContent = data.message;
+
+            }
+        };
+
+        socket.onerror = function (error) {
+            console.error('WebSocket Error:', error);
+            statusDiv.textContent = `WebSocket Error: ${error.message || 'Unknown error'}`;
+        };
+
+        socket.onclose = function (event) {
+            console.log('WebSocket connection closed:', event.code, event.reason);
+            statusDiv.textContent = `WebSocket Closed: ${event.code} ${event.reason}`;
+        };
+
+        uploadButton.addEventListener('click', function () {
+            file = fileInput.files[0];
+            if (!file) {
+                statusDiv.textContent = 'Please select a file first.';
+                return;
+            }
+
+            console.log('Starting file upload for:', file.name);
+            // Reset offset for new upload
+            offset = 0;
+
+            // Send file metadata
+            const metaData = JSON.stringify({
+                type: 'file_meta',
+                file_name: file.name,
+                file_size: file.size
+            });
+            console.log('Sending metadata:', metaData);
+            socket.send(metaData);
+
+            statusDiv.textContent = 'Starting file upload...';
+        });
+
+        function sendNextChunk() {
+            if (offset < file.size) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const chunk = e.target.result.split(',')[1]; // Get base64 data
+                    const chunkData = JSON.stringify({
+                        type: 'file_chunk',
+                        chunk: chunk
+                    });
+                    console.log(`Sending chunk: ${offset} to ${offset + chunkSize}`);
+                    socket.send(chunkData);
+                    statusDiv.textContent = `Uploading: ${Math.round((offset / file.size) * 100)}%`;
+                };
+                const slice = file.slice(offset, offset + chunkSize);
+                reader.readAsDataURL(slice);
+                offset += chunkSize;
+            } else {
+                console.log('File upload complete');
+                statusDiv.textContent = 'File upload complete!';
+            }
+        }
+    </script>
+</body>
+
+</html>
