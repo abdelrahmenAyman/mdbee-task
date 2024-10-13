@@ -3,9 +3,12 @@ import logging
 from typing import Any
 
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.conf import settings
+from django.core.cache import cache
+from django.utils import timezone
 
 from file_listener.enums import MessageType
-from file_listener.errors import InvalidMessageTypeError
+from file_listener.errors import InvalidMessageTypeError, RateLimitExceededError
 from file_listener.handlers import FileTransferHandler, WebSocketMessageHandler
 
 logger = logging.getLogger("django")
@@ -26,11 +29,12 @@ class FileTransferConsumer(AsyncWebsocketConsumer):
         logger.info("WebSocket connection established.")
         await self.accept()
 
-    async def disconnect(self, close_code):
-        logger.info(f"WebSocket disconnected with code: {close_code}")
+    async def disconnect(self, code):
+        logger.info(f"WebSocket disconnected with code: {code}")
 
     async def receive(self, text_data):
         try:
+            await self.limit_rate()
             text_data_json = json.loads(text_data)
             message_type = text_data_json["type"]
             handler = await self.dispatch_handler(message_type)
@@ -47,9 +51,31 @@ class FileTransferConsumer(AsyncWebsocketConsumer):
         except ValueError as e:
             logger.error(f"Value error: {str(e)}")
             await self.message_handler.send_error(f"Value error: {str(e)}")
+        except RateLimitExceededError as e:
+            logger.error(str(e))
+            await self.message_handler.send_error(str(e))
+            await self.close(code=1008)
         except Exception as e:
             logger.exception(f"An unexpected error occurred: {str(e)}")
             await self.message_handler.send_error(f"An error occurred: {str(e)}")
+
+    async def limit_rate(self):
+        user_ip = self.scope["client"][0]
+        key = f"{settings.RATE_LIMIT_KEY_PREFIX}{user_ip}"
+
+        current_time = timezone.now()
+        request_count, last_request_time = cache.get(key, (0, current_time))
+
+        if (current_time - last_request_time).total_seconds() > settings.RATE_LIMIT_PERIOD:
+            request_count = 0
+            last_request_time = current_time
+
+        if request_count >= settings.RATE_LIMIT_PER_PERIOD:
+            logger.error(f"Rate limit exceeded for user IP: {user_ip}")
+            raise RateLimitExceededError("Rate limit exceeded")
+
+        request_count += 1
+        cache.set(key, (request_count, last_request_time), timeout=60)
 
     async def dispatch_handler(self, message_type: str):
         try:

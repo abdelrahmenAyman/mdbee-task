@@ -12,3 +12,13 @@ services:
     - FILE_MAX_SIZE=20
     - FILE_ALLOWED_EXTENSIONS=["txt", "pdf", "png", "jpg", "jpeg", "gif"]
     - FILE_SAVE_DIRECTORY=uploaded_files
+    - REDIS_URL=redis://redis:6379
+    - RATE_LIMIT_PERIOD=60
+    - RATE_LIMIT_PER_PERIOD=1000
+    - DEBUG=False
+    - DJANGO_SECRET_KEY=django-insecure-dudljr(#&0)l#glmqhrz7q2=zu@1e9h@^#*n!g3s6_j&02t*du
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"

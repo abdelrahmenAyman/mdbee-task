@@ -28,6 +28,11 @@ migrate:
 build:
 	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) up --build
 
+# Build the test image before starting it
+.PHONY: build-test
+build-test:
+	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_TEST_FILE) up --build
+
 # Stop all running containers
 .PHONY: stop
 stop:  ## Stop all running containers

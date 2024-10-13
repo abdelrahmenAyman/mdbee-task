@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test
-    command: ["pytest"]
+    command: ["pytest", "-s", "--cov-report=html"]
     volumes:
       - .:/app
       - app_data:/app/uploaded_files
@@ -11,6 +11,15 @@ services:
     - FILE_MAX_SIZE=10
     - FILE_ALLOWED_EXTENSIONS=["txt", "pdf", "png", "jpg", "jpeg", "gif"]
     - FILE_SAVE_DIRECTORY=uploaded_files
+    - REDIS_URL=redis://redis:6379
+    - RATE_LIMIT_PERIOD=60
+    - RATE_LIMIT_PER_PERIOD=1000
+    - DANGO_SECRET_KEY=django-insecure-dudljr(#&0)l#glmqhrz7q2=zu@1e9h@^#*n!g3s6_j&02t*du
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
 
 volumes:
   app_data:
