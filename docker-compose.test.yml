@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test
-    command: ["pytest", "-s", "--cov-report=html"]
+    command: ["pytest"]
     volumes:
       - .:/app
       - app_data:/app/uploaded_files
