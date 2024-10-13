@@ -13,7 +13,7 @@ The project is implemented using django, django-channels for websockets and redi
 - docker & docker-compose: Containerization
 ## Setup Instructions
 Prerequisites:
-- Before you begin, ensure you have met the following requirements:
+Before you begin, ensure you have met the following requirements:
   - Docker & Docker Compose (for containerized deployment)
   - make
 ### 1. Clone the Repository
@@ -23,7 +23,7 @@ cd file_receiver
 ```
 ### 2. Create Directory to save files
 Create a directory in the root of the project called `uploaded_files` or whatever value the env var `FILE_SAVE_DIRECTORY` is set to. This is required for the project to run but it's there just for demonstration of saving files and to make it easier to access uploaded files while testing.
-### 3.. Run server
+### 3. Run server
 - Migrations are run automatically
 - Redis server is started inside a docker container
 - Django development server is started inside a docker container
