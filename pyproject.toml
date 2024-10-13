@@ -12,6 +12,9 @@ django-types = "^0.19.1"
 django-stubs-ext = "^5.1.0"
 djangorestframework = "^3.15.2"
 channels = {extras = ["daphne"], version = "^4.1.0"}
+pytest = "^8.3.3"
+pytest-django = "^4.9.0"
+pytest-asyncio = "^0.24.0"
 
 
 [tool.poetry.group.dev.dependencies]

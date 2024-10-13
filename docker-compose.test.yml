@@ -1,0 +1,16 @@
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: ["pytest"]
+    volumes:
+      - .:/app
+      - app_data:/app/uploaded_files
+    environment:
+    - FILE_MAX_SIZE=10
+    - FILE_ALLOWED_EXTENSIONS=["txt", "pdf", "png", "jpg", "jpeg", "gif"]
+    - FILE_SAVE_DIRECTORY=uploaded_files
+
+volumes:
+  app_data:

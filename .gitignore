@@ -62,4 +62,4 @@ dist/
 
 db.sqlite3
 django_debug.log
-received_files/
+uploaded_files/

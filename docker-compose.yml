@@ -1,0 +1,14 @@
+services:
+  web:
+    build:
+      context: .
+    command:  ./manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - ./uploaded_files:/app/uploaded_files
+    ports:
+      - "8000:8000"
+    environment:
+    - FILE_MAX_SIZE=20
+    - FILE_ALLOWED_EXTENSIONS=["txt", "pdf", "png", "jpg", "jpeg", "gif"]
+    - FILE_SAVE_DIRECTORY=uploaded_files

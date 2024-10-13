@@ -1,0 +1,28 @@
+# Use the same base image as production
+FROM python:3.12.7
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV POETRY_VERSION=1.5.1
+
+# Install dependencies
+RUN apt-get update && apt-get install -y curl && \
+    curl -sSL https://install.python-poetry.org | python3 - && \
+    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+
+# Set working directory and copy files
+WORKDIR /app
+COPY pyproject.toml poetry.lock ./
+RUN poetry config virtualenvs.create false --local && poetry install
+
+# Copy the rest of the project files
+COPY . .
+
+# Set permissions and switch to non-root user
+RUN groupadd -r appgroup && useradd -r -g appgroup -u 1000 appuser && \
+    chown -R appuser:appgroup /app
+USER appuser
+
+# Run tests instead of starting the server
+CMD ["pytest"]

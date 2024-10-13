@@ -1,2 +1,2 @@
-class InvalidMessageType(Exception):
+class InvalidMessageTypeError(Exception):
     pass

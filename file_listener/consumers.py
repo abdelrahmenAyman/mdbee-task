@@ -1,10 +1,12 @@
 import json
 import logging
-from channels.generic.websocket import AsyncWebsocketConsumer
 from typing import Any
+
+from channels.generic.websocket import AsyncWebsocketConsumer
+
 from file_listener.enums import MessageType
-from file_listener.handlers import WebSocketMessageHandler, FileTransferHandler
-from file_listener.errors import InvalidMessageType
+from file_listener.errors import InvalidMessageTypeError
+from file_listener.handlers import FileTransferHandler, WebSocketMessageHandler
 
 logger = logging.getLogger("django")
 
@@ -39,9 +41,12 @@ class FileTransferConsumer(AsyncWebsocketConsumer):
         except KeyError as e:
             logger.error(f"Missing key in JSON: {str(e)}")
             await self.message_handler.send_error(f"Missing key in JSON: {str(e)}")
-        except InvalidMessageType as e:
+        except InvalidMessageTypeError as e:
             logger.error(str(e))
             await self.message_handler.send_error(str(e))
+        except ValueError as e:
+            logger.error(f"Value error: {str(e)}")
+            await self.message_handler.send_error(f"Value error: {str(e)}")
         except Exception as e:
             logger.exception(f"An unexpected error occurred: {str(e)}")
             await self.message_handler.send_error(f"An error occurred: {str(e)}")
@@ -50,7 +55,7 @@ class FileTransferConsumer(AsyncWebsocketConsumer):
         try:
             return self.message_handlers[message_type]
         except KeyError:
-            raise InvalidMessageType(f"Invalid message type: {message_type}")
+            raise InvalidMessageTypeError(f"Invalid message type: {message_type}")
 
     async def handle_file_meta(self, data: Json):
         self.file_handler = FileTransferHandler(file_name=data["file_name"], file_size=data["file_size"])
@@ -58,9 +63,9 @@ class FileTransferConsumer(AsyncWebsocketConsumer):
 
     async def handle_file_chunk(self, data: Json):
         await self.file_handler.append_chunk(data["chunk"])
-        if await self.file_handler.is_file_complete():
+        if self.file_handler.is_file_complete():
             await self.file_handler.save_file()
-            file_extension = await self.file_handler.get_file_extension()
+            file_extension = self.file_handler.get_file_extension()
             await self.message_handler.send_file_received(file_extension, self.file_handler.file_name)
         else:
             await self.message_handler.send_chunk_received()

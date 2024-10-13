@@ -1,11 +1,12 @@
 import base64
 import json
-import os
 import logging
+import os
 
 from channels.generic.websocket import AsyncWebsocketConsumer
-from file_listener.enums import MessageType
+from django.conf import settings
 
+from file_listener.enums import MessageType
 
 logger = logging.getLogger("django")
 
@@ -61,6 +62,12 @@ class FileTransferHandler:
         self.received_size = 0
         self.content = b""
 
+        if self.file_size > settings.FILE_MAX_SIZE:
+            raise ValueError(f"File size {self.file_size // 1024 // 1024}MB exceeds the maximum allowed size.")
+        if (extension := self.get_file_extension()) not in settings.FILE_ALLOWED_EXTENSIONS:
+            raise ValueError(f"Invalid file extension: {extension}.")
+        self._sanitize_file_name()
+
     async def append_chunk(self, chunk: str):
         chunk_bytes = await self._decode_b64_chunk(chunk)
         self.content += chunk_bytes
@@ -69,11 +76,11 @@ class FileTransferHandler:
     async def _decode_b64_chunk(self, chunk: str) -> bytes:
         return base64.b64decode(chunk)
 
-    async def is_file_complete(self) -> bool:
+    def is_file_complete(self) -> bool:
         return self.received_size >= self.file_size
 
     async def save_file(self):
-        file_path = os.path.join("received_files", self.file_name)
+        file_path = os.path.join(settings.FILE_SAVE_DIRECTORY, self.file_name)
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         logger.info(f"Saving file to {file_path}")
@@ -81,6 +88,9 @@ class FileTransferHandler:
             f.write(self.content)
         logger.info(f"File saved successfully: {file_path}")
 
-    async def get_file_extension(self) -> str:
+    def get_file_extension(self) -> str:
         extension = os.path.splitext(self.file_name)[1][1:]
         return extension
+
+    def _sanitize_file_name(self):
+        self.file_name = "".join(char for char in self.file_name if char.isalnum() or char in [".", "_", "-"])

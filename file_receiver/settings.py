@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import json
 import os
 from pathlib import Path
 
@@ -142,12 +143,6 @@ LOGGING = {
         },
     },
     "handlers": {
-        "file": {
-            "level": "DEBUG",
-            "class": "logging.FileHandler",
-            "filename": os.path.join(BASE_DIR, "django_debug.log"),
-            "formatter": "verbose",
-        },
         "console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
@@ -162,3 +157,8 @@ LOGGING = {
         },
     },
 }
+
+# File Transfer Settings
+FILE_MAX_SIZE = int(os.environ.get("FILE_MAX_SIZE", 10)) * 1024 * 1024
+FILE_ALLOWED_EXTENSIONS = json.loads(os.environ.get("FILE_ALLOWED_EXTENSIONS", '["txt"]'))
+FILE_SAVE_DIRECTORY = os.environ.get("FILE_SAVE_DIRECTORY", "uploaded_files")
